@@ -1,11 +1,105 @@
 #!/usr/bin/env bash
-# Installs Nginx with the following configurations:
-#+    Listens on port 80.
-#+    Returns a page containing "Holberton School" when queried
-#++    at the root with a curl GET request.
+# This script installs Nginx on a new Ubuntu machine, configures it
+# to listen on port 80, and serves a page containing "Holberton School"
+# at the root directory.
 
-apt-get update -y
-apt-get install nginx -y 
-sudo ufw allow 'Nginx HTTP'
-sh -c 'echo "Holberton School" > /var/www/html/index.html'
-service nginx restart
+# Update package lists
+echo "Updating package lists..."
+sudo apt-get update -y
+
+# Install Nginx
+echo "Installing Nginx..."
+sudo apt-get install -y nginx
+
+# Check if Nginx installation was successful
+if [ $? -ne 0 ]; then
+    echo "Error: Nginx installation failed. Exiting."
+    exit 1
+fi
+
+# Create a custom index.html file with the required string
+echo "Creating custom index.html..."
+echo "Holberton School for the win!" | sudo tee /var/www/html/index.html > /dev/null
+
+# Ensure the default Nginx configuration points to the correct index file
+# This step is often not strictly necessary if the default config already
+# serves /var/www/html/index.html, but it's good practice to ensure.
+# We will modify the default server block to explicitly use index.html
+# and ensure the root is set correctly.
+
+# Backup the original default Nginx configuration file
+echo "Backing up original Nginx default configuration..."
+sudo cp /etc/nginx/sites-available/default /etc/nginx/sites-available/default.bak
+
+# Modify the default Nginx configuration to ensure it serves index.html
+# and the root is /var/www/html.
+# This sed command will:
+# 1. Change the default index file order to prioritize index.html
+# 2. Ensure the root directory is /var/www/html
+# 3. Add a location block for / to ensure it serves index.html
+sudo sed -i 's|index index.html index.htm nginx-debian.html;|index index.html;|g' /etc/nginx/sites-available/default
+sudo sed -i 's|root /var/www/html;|root /var/www/html;|g' /etc/nginx/sites-available/default
+
+# Add a simple server block if it's missing or ensure it's correctly configured
+# This part is more robust for ensuring the content is served from /
+# We will ensure the default config has a location / block that points to index.html
+# and allows direct serving.
+# This is a more direct way to ensure the content is served.
+# We will overwrite the default site configuration for simplicity,
+# assuming a fresh install or that overwriting is acceptable for this task.
+
+echo "Configuring Nginx default site..."
+sudo bash -c 'cat <<EOF > /etc/nginx/sites-available/default
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    root /var/www/html;
+    index index.html index.htm;
+
+    server_name _;
+
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
+
+    # Add error page handling if needed
+    error_page 404 /404.html;
+    location = /404.html {
+        internal;
+    }
+
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        internal;
+    }
+}
+EOF'
+
+# Test Nginx configuration for syntax errors
+echo "Testing Nginx configuration..."
+sudo nginx -t
+if [ $? -ne 0 ]; then
+    echo "Error: Nginx configuration test failed. Reverting to backup and exiting."
+    sudo cp /etc/nginx/sites-available/default.bak /etc/nginx/sites-available/default
+    exit 1
+fi
+
+# Restart Nginx service without systemctl
+echo "Restarting Nginx service..."
+sudo service nginx restart
+
+# Verify Nginx is running and serving the content
+echo "Verifying Nginx status and content..."
+if service nginx status | grep -q "active (running)"; then
+    echo "Nginx is running."
+    curl -s localhost | grep "Holberton School"
+    if [ $? -eq 0 ]; then
+        echo "Nginx is successfully serving 'Holberton School' at the root."
+        echo "Configuration complete."
+    else
+        echo "Error: Nginx is running, but 'Holberton School' string not found at root."
+    fi
+else
+    echo "Error: Nginx is not running after restart."
+fi
