@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
-# Installs Nginx and configures the root page to return "Holberton School"
+# Installs Nginx and sets up the root page with 'Holberton School'
 
-# Exit if any command fails
+# Exit if anything fails
 set -e
 
-# Install nginx
+# Install nginx if not present
 apt update
 apt install -y nginx
 
-# Replace default page with required text
-echo "Holberton School" > /var/www/html/index.html
+# Add content to index.html
+echo 'Holberton School' > /var/www/html/index.html
 
-# Start nginx without systemctl
-if command -v service >/dev/null 2>&1; then
-    service nginx restart
+# Start nginx (without systemctl)
+if [ -x /etc/init.d/nginx ]; then
+  /etc/init.d/nginx restart
 else
-    /etc/init.d/nginx restart
+  service nginx restart
 fi
