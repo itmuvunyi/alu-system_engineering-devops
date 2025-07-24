@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
+# Configures NGINX to listen on port 80 and restart the service
 
-# Remove default config from sites-enabled
 rm -f /etc/nginx/sites-enabled/default
 
 # Go to sites-enabled directory
