@@ -1,16 +1,25 @@
 #!/usr/bin/env bash
-# This script installs Nginx and sets up a redirect from /redirect_me
-
-set -e  # Exit immediately if a command fails
-
-sudo apt-get update
+# redirection
+sudo apt-get update -y
 sudo apt-get install -y nginx
-
-# Add redirect from /redirect_me to /
-sudo sed -i '/server_name _;/a \\tlocation /redirect_me {\n\t\treturn 301 /;\n\t}' /etc/nginx/sites-available/default
-
-# Set homepage content
-echo "Holberton School for the win!" | sudo tee /var/www/html/index.html > /dev/null
-
-# Restart Nginx to apply changes
+sudo ufw allow 'Nginx HTTP'
+config=\
+"server {
+        listen 80 default_server;
+        listen [::]:80 default_server;
+	root /var/www/html;
+	index index.html index.htm index.nginx-debian.html;
+	server_name _;
+	location / {
+		try_files \$uri \$uri/ =404;
+        }
+	location /redirect_me {
+		return 301 https://www.youtube.com/watch?v=QH2-TGUlwu4;
+	}
+}
+"
+sudo chown -R "$USER":"$USER" /var/www/html/index.html
+sudo chown -R "$USER":"$USER" /etc/nginx/sites-available/default
+echo "Holberton School" > /var/www/html/index.html
+echo "$config" > /etc/nginx/sites-available/default
 sudo service nginx restart
