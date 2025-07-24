@@ -14,20 +14,3 @@ service nginx restart
 
 # Test if nginx is responding on port 80
 curl -s 0:80
-
-
-# Exit immediately if a command fails
-set -e
-
-echo "Removing existing default config link from sites-enabled..."
-sudo rm -f /etc/nginx/sites-enabled/default
-
-echo "Creating symbolic link to sites-available/default..."
-cd /etc/nginx/sites-enabled/
-sudo ln -s ../sites-available/default .
-
-echo "Restarting NGINX..."
-sudo service nginx restart
-
-echo "Testing HTTP response on port 80..."
-curl 0:80
